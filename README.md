@@ -3,7 +3,7 @@
 
 360YunPan Command-line tools, support: Linux Mac Windows
 
-
+*******This version maybe have some bugs*********
 ##功能：
 * 云盘登陆
 * 云盘文件下载
