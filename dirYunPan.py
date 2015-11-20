@@ -1,8 +1,9 @@
+#!/usr/bin/env python
 # -*- coding: utf8 -*-
 """
 目录下载 文件下载
 
-360yunpan - 360YunPan Command-line tools, support: Linux Mac Windows 
+360yunpan - 360YunPan Command-line tools, support: Linux Mac Windows
 Licensed under the MIT license:
   http://www.opensource.org/licenses/mit-license.php
 Project home:
@@ -10,25 +11,30 @@ Project home:
 Version:  1.0.0
 
 @Author logbird@126.com
+***This is a change for Python3.5***
 """
+
+__author__ = 'cheng'
+__version__ = '1.2.0'
+
 import sys
-import urllib
-import urllib2
-import cookielib
+import urllib.request
+from http import cookiejar
 import time
 import random
 import hashlib
 import json
 import re
 import os
+import importlib
 
-reload(sys)
-sys.setdefaultencoding("utf-8")
+importlib.reload(sys)
+# sys.setdefaultencoding("utf-8")
 
 import utilsYunPan
-from loginYunPan import loginYunPan
+from loginYunPan import LoginYunPan
 
-class dirYunPan:
+class DirYunPan:
 
     serverAddr = None
     pathYunPan = None
@@ -36,7 +42,7 @@ class dirYunPan:
 
     def __init__(self, pathYunPan, serverAddr):
         '''构造函数
-            
+
             pathYunPan String 本地云盘的绝对路径
             serverAddr String 登陆成功后 loginYunPan的serverAddr属性
         '''
@@ -48,17 +54,18 @@ class dirYunPan:
         '''获取网盘剩余空间
         '''
         url = self.serverAddr + "/user/getsize/?t=1377829621254&ajax=1"
-        result = urllib2.urlopen(url).read()
+        result = urllib.request.urlopen(url).read()
+        result=result.decode('utf8')
         result = json.loads(result)
         if int(result['errno']) == 0:
             size = {}
-            size['total'] = long(result['data']['total_size'])
-            size['used'] = long(result['data']['used_size'])
-            size['free'] = long(result['data']['total_size']) - long(result['data']['used_size'])
+            size['total'] = int(result['data']['total_size'])
+            size['used'] = int(result['data']['used_size'])
+            size['free'] = int(result['data']['total_size']) - int(result['data']['used_size'])
 
             return size
         else:
-            print 'Fetch Free Space Size Error! Message: '+ result['errmsg']
+            print ('Fetch Free Space Size Error! Message: '+ result['errmsg'])
             sys.exit()
 
     def offlineList(self):
@@ -68,19 +75,12 @@ class dirYunPan:
         args = {
             'ajax' : '1',
         }
-        args = urllib.urlencode(args)
-        reqArgs  = urllib2.Request(
-            url = url,
-            data = args
-        )
-        reqArgs.add_header("Referer", self.serverAddr + "/my/index/");
-        result = urllib2.urlopen(reqArgs).read()
-        result = utilsYunPan.jsonRepair(result)
-        result = json.loads(result)
+        referer = self.serverAddr + "/my/index/"
+        result = self._getResult(url,args,referer)
         if int(result['errno']) == 0:
             return result['data']
         else:
-            print 'Get Offline Tast List Err! Message: '+ result['errmsg']
+            print ('Get Offline Tast List Err! Message: '+ result['errmsg'])
             sys.exit()
 
     def offlineDownload(self, offurl):
@@ -91,21 +91,26 @@ class dirYunPan:
             'ajax' : '1',
             'url' : offurl,
         }
-        args = urllib.urlencode(args)
-        reqArgs  = urllib2.Request(
-            url = url,
-            data = args
-        )
-        reqArgs.add_header("Referer", self.serverAddr + "/my/index/");
-        result = urllib2.urlopen(reqArgs).read()
-        result = utilsYunPan.jsonRepair(result)
-        result = json.loads(result)
+        referer = self.serverAddr + "/my/index/"
+        result = self._getResult(url,args,referer)
         if int(result['errno']) == 0:
             return result['data']
         else:
-            print 'Create Offline Tast Err! Message: '+ result['errmsg']
+            print ('Create Offline Tast Err! Message: '+ result['errmsg'])
             sys.exit()
 
+    def _getResult(url,args,referer):
+        args = urllib.parse.urlencode(args)
+        reqArgs  = urllib.request.Request(
+            url = url,
+            data = bytes(args,'utf8')
+        )
+        reqArgs.add_header("Referer", referer);
+        result = urllib.request.urlopen(reqArgs).read()
+        result = result.decode('utf8')
+        result = utilsYunPan.jsonRepair(result)
+        result = json.loads(result)
+        return result
 
     def ls(self, path = '/'):
         '''获取path目录下的文件列表
@@ -123,20 +128,12 @@ class dirYunPan:
             't' : str(random.random()),
             'type' : '2'
         }
-        args = urllib.urlencode(args)
-        reqArgs  = urllib2.Request(
-            url = url,
-            data = args
-        )
-        reqArgs.add_header("Referer", "http://c21.yunpan.360.cn/my/index/");
-        result = urllib2.urlopen(reqArgs).read()
-        #result = open(sys.path[0] + '/dir.dat').read()
-        result = utilsYunPan.jsonRepair(result)
-        result = json.loads(result)
+        referer = "http://c21.yunpan.360.cn/my/index/"
+        result = self._getResult(url,args,referer)
         if int(result['errno']) == 0:
             return result['data']
         else:
-            print 'Get Dir List Error, Please try again later! Message: '+ result['errmsg']
+            print ('Get Dir List Error, Please try again later! Message: '+ result['errmsg'])
             sys.exit()
 
     def downloadFile(self, fname, nid, fileHash):
@@ -155,23 +152,16 @@ class dirYunPan:
             'hid' : '',
             'nid' : nid
         }
-        args = urllib.urlencode(args)
-        reqArgs  = urllib2.Request(
-            url = url,
-            data = args
-        )
-        reqArgs.add_header("Referer", "http://c21.yunpan.360.cn/my/index/");
-        result = urllib2.urlopen(reqArgs).read()
-        result = json.loads(result)
+        referer = "http://c21.yunpan.360.cn/my/index/"
+        result  = self._getResult(url,args,referer)
         # 这里需要做一些验证
-        result = urllib2.urlopen(result['data']['download_url']).read();
+        result = urllib.request.urlopen(result['data']['download_url']).read()
         fname = self.pathYunPan + fname
-        fname = fname.decode()
         if utilsYunPan.isText(result[0:512]):
-            print "Download File: " + fname + " type: ASCII"
+            print ("Download File: " + fname + " type: ASCII")
             open(fname, 'w').write(result)
         else:
-            print "Download File: " + fname + " type: Binary"
+            print ("Download File: " + fname + " type: Binary")
             open(fname, 'wb').write(result)
 
     def downloadDirTree(self, path = '/', force = False):
@@ -190,19 +180,19 @@ class dirYunPan:
 
         # 开始下载文件夹
         for i in tree:
-            if len(i) > 0 and i.has_key('isDir') and i['isDir'] == 1:
+            if len(i) > 0 and i.get('isDir',0) == 1:
                 self.mkdir(self.pathYunPan + i['path'])
-                print "Download Directroy: " + i['path']
+                print ("Download Directroy: " + i['path'])
                 # 查询子目录
-                if i.has_key('childs') and len(i['childs']) > 0:
+                if len(i.get('childs','')) > 0:
                     tree += i['childs']
         return tree
 
     def fetchDirTree(self, path = '/'):
         dirList = self.ls(path)
         for i in dirList:
-            if len(i) > 0 and i.has_key('isDir') and i['isDir'] == 1:
-                print "Fetch Directroy: " + i['path']
+            if len(i) > 0 and i.get('isDir',0) == 1:
+                print ("Fetch Directroy: " + i['path'])
                 i['childs']= self.fetchDirTree(i['path']);
         sys.stdout.flush()
         return dirList
@@ -213,7 +203,7 @@ class dirYunPan:
 
 
 if __name__ == '__main__':
-    login = loginYunPan()
+    login = LoginYunPan()
     userinfo = login.run('user', 'pwd')
     pathYunPan = 'E:/testyun'
     dir = dirYunPan(pathYunPan, login.serverAddr)

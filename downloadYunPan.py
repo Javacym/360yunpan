@@ -3,38 +3,42 @@
 """
 多线程下载管理器
 
-360yunpan - 360YunPan Command-line tools, support: Linux Mac Windows 
+360yunpan - 360YunPan Command-line tools, support: Linux Mac Windows
 Licensed under the MIT license:
   http://www.opensource.org/licenses/mit-license.php
 Project home:
   https://github.com/logbird/360yunpan
 Version:  1.0.0
 
-
 @Author logbird@126.com
+***This is a change for Python3.5***
 """
+
+__author__ = 'cheng'
+__version__ = '1.2.0'
+
 import json
 import sys
 from threading import Thread
 import utilsYunPan
 
-class downloadYunPan(Thread):
+class DownloadYunPan(Thread):
     dir = None
     def __init__(self, dir):
         Thread.__init__(self)
         self.dir = dir
-        
+
     def run(self):
-        while(True):
+        while True:
             try:
-                finfo = downloadManager.popFile()
+                finfo = DownloadManager.popFile()
                 self.dir.downloadFile(finfo['path'], finfo['nid'], finfo['fhash'])
                 sys.stdout.flush()
             except IndexError:
                 break
 
 
-class downloadManager():
+class DownloadManager():
     '''
         oriName = "反面.jpg"
         path = "/图片/反面.jpg"
@@ -61,11 +65,11 @@ class downloadManager():
         '''
         # 整理下载队列
         for i in tree:
-            if len(i) > 0 and i.has_key('isDir') and i['isDir'] == 1:
+            if len(i) > 0 and i.get('isDir',0) == 1:
                 # 查询子目录
-                if i.has_key('childs') and len(i['childs']) > 0:
+                if len(i.get('childs','')) > 0:
                     tree += i['childs']
-            elif len(i) > 0 and i.has_key('oriSize') and i.has_key('fileType'):
+            elif len(i) > 0 and 'oriSize' in i and 'fileType' in i:
                 self.downloadQueue.append(i)
 
 
@@ -76,19 +80,14 @@ class downloadManager():
     @classmethod
     def start(self, dir, threadCount = 1):
         sThread = []
-        print "Download Starting in {0} Threads, Please Wait!".format(threadCount)
+        print ("Download Starting in {0} Threads, Please Wait!".format(threadCount))
         sys.stdout.flush()
-        for i in xrange(0, threadCount):
-            c = downloadYunPan(dir)
+        for i in range(0, threadCount):
+            c = DownloadYunPan(dir)
             c.start()
             sThread.append(c)
 
-        for i in sThread:
-            i.join()
+        for st in sThread:
+            st.join()
 
-        print "All Is Done!"
-
-    
-
-    
-    
+        print ("All Is Done!")

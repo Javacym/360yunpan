@@ -14,7 +14,7 @@
   -o, --offline 开始离线下载
   -t, --task 查看离线下载队列
 
-360yunpan - 360YunPan Command-line tools, support: Linux Mac Windows 
+360yunpan - 360YunPan Command-line tools, support: Linux Mac Windows
 Licensed under the MIT license:
   http://www.opensource.org/licenses/mit-license.php
 Project home:
@@ -22,33 +22,36 @@ Project home:
 Version:  1.0.0
 
 @Author logbird@126.com
+***This is a change for Python3.5***
 """
+__author__ = 'cheng'
+__version__ = '1.2.0'
+
 import sys
-import getopt 
-import urllib
-import urllib2
-import cookielib
+import getopt
+import urllib.request
+from http import cookiejar
 import time
 import random
 import hashlib
 import json
 import re
 import os
+import importlib
 
-reload(sys)
-sys.setdefaultencoding("utf-8")
+importlib.reload(sys)
+# sys.setdefaultencoding("utf-8")
 
 import utilsYunPan
-from loginYunPan import loginYunPan
-from dirYunPan import dirYunPan
-from downloadYunPan import downloadYunPan
-from downloadYunPan import downloadManager
+from loginYunPan import LoginYunPan
+from dirYunPan import DirYunPan
+from downloadYunPan import DownloadYunPan
+from downloadYunPan import DownloadManager
 
-conf = {
-}
+conf = {}
 
 def usage():
-    print """
+    print ("""
   用法: ./cli.py -o http://xxx.com/xxx.tar.gz
 
   例子:
@@ -60,27 +63,27 @@ def usage():
   -o, --offline 开始离线下载
   -t, --task 查看离线下载队列
 
-    """
+    """)
     sys.exit()
 
 def login(user, pwd):
-    login = loginYunPan()
+    login = LoginYunPan()
     userinfo = login.run(user, pwd)
     return login, userinfo
 
 def offlineDownload(loginObj, url):
-    dir = dirYunPan('/', loginObj.serverAddr)
+    dir = DirYunPan('/', loginObj.serverAddr)
     result = dir.offlineDownload("http://todeer.sinaapp.com/include/lib/js/common_tpl.js");
-    print result['task_id']
+    print (result['task_id'])
 
 def offlineList(loginObj):
-    dir = dirYunPan('/', loginObj.serverAddr)
+    dir = DirYunPan('/', loginObj.serverAddr)
     result = dir.offlineList();
     task_list = {}
-    if result.has_key('offline_task_list'):
+    if 'offline_task_list' in result:
         task_list = result['offline_task_list']
     for i in task_list:
-        print "%s\t%s\t%s" % (i['status'], i['task_id'], i['url'])
+        print ("%s\t%s\t%s" % (i['status'], i['task_id'], i['url']))
 
 def runCommand(conf, user, pwd):
     try:
@@ -109,7 +112,3 @@ if __name__ == '__main__':
     # 初始化 命令行参数
     conf = runCommand(conf, username, password)
     sys.exit()
-
-
-
-
